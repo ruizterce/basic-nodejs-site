@@ -1,35 +1,28 @@
-const http = require("http");
-const fs = require("fs");
+const express = require("express");
+const app = express();
+const PORT = 8080;
 
-http
-  .createServer(function (req, res) {
-    // Deconstruct request url
-    const baseURL = "http://" + req.headers.host + "/";
-    const q = new URL(req.url, baseURL);
+// Serve index.html
+app.get("/", (req, res) => {
+  res.sendFile("index.html", { root: "./" });
+});
 
-    // Get filename or index if empty
-    const filename =
-      q.pathname === "/" ? "./index.html" : "." + q.pathname + ".html";
+// Serve other pages based on the URL path
+app.get("/:page", (req, res, next) => {
+  const filename = `/${req.params.page}.html`;
+  res.sendFile(filename, { root: "./" }, (err) => {
+    if (err) {
+      next(); // If file is not found, go to the next route handler
+    }
+  });
+});
 
-    // Read the requested file
-    fs.readFile(filename, function (err, data) {
-      if (err) {
-        // If the requested file is not found, serve 404.html
-        fs.readFile("./404.html", function (error404, data404) {
-          if (error404) {
-            // If 404.html is also not found, return a simple hardcoded error
-            res.writeHead(404, { "Content-Type": "text/html" });
-            return res.end("404 Not Found");
-          }
-          res.writeHead(404, { "Content-Type": "text/html" });
-          res.write(data404);
-          return res.end();
-        });
-      } else {
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.write(data);
-        return res.end();
-      }
-    });
-  })
-  .listen(8080);
+// Default route for 404.html
+app.use((req, res) => {
+  res.status(404).sendFile("/404.html", { root: "./" });
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
